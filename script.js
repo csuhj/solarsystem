@@ -12,7 +12,7 @@ function main(canvas) {
   const near = 0.1;
   const far = 1000;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.set(0, 50, 0);
+  camera.position.set(0, 500, 0);
   camera.up.set(0, 0, 1);
   camera.lookAt(0, 0, 0);
 
@@ -20,7 +20,7 @@ function main(canvas) {
 
   {
     const color = 0xFFFFFF;
-    const intensity = 3;
+    const intensity = 2;
     const light = new THREE.PointLight(color, intensity);
     scene.add(light);
   }
@@ -32,14 +32,25 @@ function main(canvas) {
 
   solarSystem.add(createSun());
 
-  const mercury = createPlanet('mercury', 0.39, 0.3, objects);
-  const venus = createPlanet('venus', 0.72, 1, objects);
-  const earth = createPlanet('earth', 1, 1, objects);
-  addMoon(earth, 1, objects);
+  const mercury = createPlanet('mercury', 57.91, 2440, 0xcc5200, objects);
+  const venus = createPlanet('venus', 108.2, 6052, 0xffffb3,  objects);
+  const earth = createPlanet('earth',148, 6371, 0x66a3ff, objects);
+  addMoon(earth, 0.384, 1737, objects);
+
+  const mars = createPlanet('mars', 239.67, 3390, 0xff471a, objects);
+  const jupiter = createPlanet('jupiter', 778, 69911, 0xff9966, objects);
+  const saturn = createPlanet('saturn', 1434, 58232, 0xcca300, objects);
+  const uranus = createPlanet('uranus', 2871, 25362, 0x99ccff, objects);
+  const neptune = createPlanet('neptune', 4495, 24262, 0x0066cc, objects);
 
   solarSystem.add(mercury);
   solarSystem.add(venus);
   solarSystem.add(earth);
+  solarSystem.add(mars);
+  solarSystem.add(jupiter);
+  solarSystem.add(saturn);
+  solarSystem.add(uranus);
+  solarSystem.add(neptune);
   
   //Should really move the camera instead
   solarSystem.rotation.x = Math.PI * 0.4;
@@ -69,7 +80,17 @@ function main(canvas) {
       if (obj.name === 'mercury') {
         factor = 1 / (88 / 365);
       } else if (obj.name === 'venus') {
-        factor = 1 / (224 / 365);
+        factor = 1 / (225 / 365);
+      } else if (obj.name === 'mars') {
+        factor = 1 / (687 / 365);
+      } else if (obj.name === 'jupiter') {
+        factor = 1 / (4333 / 365);
+      } else if (obj.name === 'saturn') {
+        factor = 1 / (10759 / 365);
+      } else if (obj.name === 'uranus') {
+        factor = 1 / (30688 / 365);
+      } else if (obj.name === 'neptune') {
+        factor = 1 / (60195 / 365);
       } else {
         factor = 1;
       }
@@ -98,9 +119,9 @@ function createSun() {
   return sunMesh;
 }
 
-function createPlanet(name, orbitRadiusInAU, planetRadiusInEarths, objectsToRotate) {
-  const orbitRadius = (orbitRadiusInAU * 10) + SunRadius;
-  const planetRadius = planetRadiusInEarths * 0.5;
+function createPlanet(name, orbitRadiusInMKm, planetRadiusInKm, colour, objectsToRotate) {
+  const orbitRadius = ((orbitRadiusInMKm / 149) * 10) + SunRadius;
+  const planetRadius = (planetRadiusInKm / 6371) * 0.5;
 
   const radius = planetRadius;
   const widthSegments = 10;
@@ -129,7 +150,7 @@ function createPlanet(name, orbitRadiusInAU, planetRadiusInEarths, objectsToRota
   planetOrbit.add(planetGroup);
   objectsToRotate.push(planetGroup);
 
-  const planetMaterial = new THREE.MeshPhongMaterial({color: 0x2233FF, emissive: 0x112244});
+  const planetMaterial = new THREE.MeshPhongMaterial({color: colour, emissive: 0x444444});
   const planetMesh = new THREE.Mesh(sphereGeometry, planetMaterial);
   planetGroup.add(planetMesh);
   objectsToRotate.push(planetMesh);
@@ -137,17 +158,17 @@ function createPlanet(name, orbitRadiusInAU, planetRadiusInEarths, objectsToRota
   return planetOrbit;
 }
 
-function addMoon(planetOrbit, orbitRadius, objectsToRotate) {
+function addMoon(planetOrbit, orbitRadius, moonRadiusInKm, objectsToRotate) {
     const planetGroup = planetOrbit.children.filter(c => c.name)[0];
 
-    const radius = 1;
+    const radius = (moonRadiusInKm / 6371);
     const widthSegments = 10;
     const heightSegments = 10;
     const sphereGeometry = new THREE.SphereGeometry(
         radius, widthSegments, heightSegments);
 
     const moonOrbit = new THREE.Object3D();
-    moonOrbit.position.x = orbitRadius;
+    moonOrbit.position.x = 1; //orbitRadius; - needs to be orbitRadius plus planet's radius
     planetGroup.add(moonOrbit);
   
     const moonMaterial = new THREE.MeshPhongMaterial({color: 0x888888, emissive: 0x222222});
