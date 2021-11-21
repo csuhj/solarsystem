@@ -1,10 +1,19 @@
 // https://threejsfundamentals.org/threejs/lessons/threejs-scenegraph.html
 // Also investigate https://dev.to/pahund/animating-camera-movement-in-three-js-17e9
 import * as THREE from './three.module.js';
+import { TWEEN } from './tween.module.min.js';
 
 const SunRadius = 2;
+const CameraPositions = [
+  {x: 0, y: 60, z: 0},
+  {x: 0, y: 1000, z: 0},
+  {x: 0, y: 30, z: -100},
+];
+let cameraPositionIndex = 0;
 
 function main(canvas) {
+  canvas.addEventListener('mousedown', mouseDown, false);
+
   const renderer = new THREE.WebGLRenderer({canvas});
 
   const fov = 40;
@@ -12,9 +21,8 @@ function main(canvas) {
   const near = 0.1;
   const far = 1000;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.set(0, 50, 0);
-  camera.up.set(0, 0, 1);
-  camera.lookAt(0, 0, 0);
+  camera.position.set(0, 100, 0);
+  setCameraPosition(camera);
 
   const scene = new THREE.Scene();
 
@@ -52,9 +60,12 @@ function main(canvas) {
   solarSystem.add(uranus);
   solarSystem.add(neptune);
   
-  //Should really move the camera instead
   solarSystem.rotation.y = Math.PI * 1.6;
-  solarSystem.rotation.x = Math.PI * 0.4;
+
+  function mouseDown(event) {
+    cameraPositionIndex = (cameraPositionIndex + 1) % CameraPositions.length;
+    setCameraPosition(camera);
+  }
 
   function resizeRendererToDisplaySize(renderer) {
     const canvas = renderer.domElement;
@@ -84,9 +95,27 @@ function main(canvas) {
     renderer.render(scene, camera);
 
     requestAnimationFrame(render);
+    TWEEN.update();
   }
 
   requestAnimationFrame(render);
+}
+
+function setCameraPosition(camera) {
+  const position = CameraPositions[cameraPositionIndex];
+
+  const coords = new THREE.Vector3( camera.position.x, camera.position.y, camera.position.z );
+  const dest = new THREE.Vector3( position.x, position.y, position.z )
+
+  new TWEEN.Tween(coords)
+    .to(dest)
+    .onUpdate(() => {
+      camera.position.set(coords.x, coords.y, coords.z);
+      camera.up.set(0, 0, 1);
+      camera.lookAt(0, 0, 0);
+    })
+    .easing(TWEEN.Easing.Cubic.Out)
+    .start();
 }
 
 function createSun() {
