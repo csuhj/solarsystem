@@ -7,6 +7,7 @@ import { InteractionManager } from 'https://cdn.skypack.dev/pin/three.interactiv
 const SunRadius = 2;
 const CameraPositions = [
   {x: 0, y: 60, z: 0},
+  {x: 0, y: 500, z: 0},
   {x: 0, y: 1000, z: 0},
   {x: 0, y: 30, z: -100},
 ];
@@ -33,6 +34,7 @@ function main(canvas, pausePlayButton, changeViewButton) {
   const far = 1500;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   camera.position.set(0, 100, 0);
+  camera.up.set(0, 0, 1);
   setCameraPosition(camera);
 
   const scene = new THREE.Scene();
@@ -147,13 +149,12 @@ function setCameraPosition(camera) {
   const position = CameraPositions[cameraPositionIndex];
 
   const coords = new THREE.Vector3( camera.position.x, camera.position.y, camera.position.z );
-  const dest = new THREE.Vector3( position.x, position.y, position.z )
+  const destCoords = new THREE.Vector3( position.x, position.y, position.z );
 
   new TWEEN.Tween(coords)
-    .to(dest)
+    .to(destCoords)
     .onUpdate(() => {
       camera.position.set(coords.x, coords.y, coords.z);
-      camera.up.set(0, 0, 1);
       camera.lookAt(0, 0, 0);
     })
     .easing(TWEEN.Easing.Cubic.Out)
