@@ -2,6 +2,7 @@
 // Also investigate https://dev.to/pahund/animating-camera-movement-in-three-js-17e9
 import * as THREE from './three.module.js';
 import { TWEEN } from './tween.module.min.js';
+import { InteractionManager } from 'https://cdn.skypack.dev/pin/three.interactive@v1.1.0-eKjdHSAKuD6J7ONJYNYB/mode=imports,min/optimized/three.interactive.js';
 
 const SunRadius = 2;
 const CameraPositions = [
@@ -11,15 +12,20 @@ const CameraPositions = [
 ];
 let cameraPositionIndex = 0;
 
-function main(canvas) {
-  canvas.addEventListener('mousedown', mouseDown, false);
+function main(canvas, pausePlayButton, changeViewButton) {
+  pausePlayButton.addEventListener('click', pausePlay, false);
+  changeViewButton.addEventListener('click', changeView, false);
+
+  let paused = false;
+  let previousPausedElapsedDuration = 0;
+  let lastPausedTime = performance.now();
 
   const renderer = new THREE.WebGLRenderer({canvas});
 
   const fov = 40;
   const aspect = 2;  // the canvas default
   const near = 0.1;
-  const far = 1000;
+  const far = 1500;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   camera.position.set(0, 100, 0);
   setCameraPosition(camera);
@@ -33,23 +39,29 @@ function main(canvas) {
     scene.add(light);
   }
 
+  const interactionManager = new InteractionManager(
+    renderer,
+    camera,
+    renderer.domElement
+  );
+
   const objectsToRotate = [];
 
   const solarSystem = new THREE.Object3D();
   scene.add(solarSystem);
 
-  solarSystem.add(createSun());
+  solarSystem.add(createSun(interactionManager, camera));
 
-  const mercury = createPlanet('mercury', 57.91, 2440, 88, 58.5, 0xcc5200, objectsToRotate);
-  const venus = createPlanet('venus', 108.2, 6052, 225, 116.6, 0xffffb3,  objectsToRotate);
-  const earth = createPlanet('earth',148, 6371, 365.25, 1, 0x66a3ff, objectsToRotate);
-  addMoon(earth, 0.384, 1737, 27.3, objectsToRotate);
+  const mercury = createPlanet('mercury', 57.91, 2440, 88, 58.5, 0xcc5200, objectsToRotate, interactionManager, camera);
+  const venus = createPlanet('venus', 108.2, 6052, 225, 116.6, 0xffffb3,  objectsToRotate, interactionManager, camera);
+  const earth = createPlanet('earth',148, 6371, 365.25, 1, 0x66a3ff, objectsToRotate, interactionManager, camera);
+  addMoon(earth, 0.384, 1737, 27.3, objectsToRotate, interactionManager, camera);
 
-  const mars = createPlanet('mars', 239.67, 3390, 687, 1, 0xff471a, objectsToRotate);
-  const jupiter = createPlanet('jupiter', 778, 69911, 4333, 0.3, 0xff9966, objectsToRotate);
-  const saturn = createPlanet('saturn', 1434, 58232, 10759, 0.4, 0xcca300, objectsToRotate);
-  const uranus = createPlanet('uranus', 2871, 25362, 30688, 0.7, 0x99ccff, objectsToRotate);
-  const neptune = createPlanet('neptune', 4495, 24262, 60195, 0.7, 0x0066cc, objectsToRotate);
+  const mars = createPlanet('mars', 239.67, 3390, 687, 1, 0xff471a, objectsToRotate, interactionManager, camera);
+  const jupiter = createPlanet('jupiter', 778, 69911, 4333, 0.3, 0xff9966, objectsToRotate, interactionManager, camera);
+  const saturn = createPlanet('saturn', 1434, 58232, 10759, 0.4, 0xcca300, objectsToRotate, interactionManager, camera);
+  const uranus = createPlanet('uranus', 2871, 25362, 30688, 0.7, 0x99ccff, objectsToRotate, interactionManager, camera);
+  const neptune = createPlanet('neptune', 4495, 24262, 60195, 0.7, 0x0066cc, objectsToRotate, interactionManager, camera);
 
   solarSystem.add(mercury);
   solarSystem.add(venus);
@@ -62,7 +74,18 @@ function main(canvas) {
   
   solarSystem.rotation.y = Math.PI * 1.6;
 
-  function mouseDown(event) {
+  function pausePlay(event) {
+    paused = !paused;
+    if (paused) {
+      pausePlayButton.innerHTML = 'Play'
+      lastPausedTime = performance.now();
+    } else {
+      pausePlayButton.innerHTML = 'Pause'
+      previousPausedElapsedDuration += (performance.now() - lastPausedTime);
+    }
+  }
+
+  function changeView(event) {
     cameraPositionIndex = (cameraPositionIndex + 1) % CameraPositions.length;
     setCameraPosition(camera);
   }
@@ -79,6 +102,10 @@ function main(canvas) {
   }
 
   function render(time) {
+    if (paused) {
+      time = lastPausedTime;
+    }
+    time -= previousPausedElapsedDuration;
     time *= 0.001;
 
     if (resizeRendererToDisplaySize(renderer)) {
@@ -118,7 +145,7 @@ function setCameraPosition(camera) {
     .start();
 }
 
-function createSun() {
+function createSun(interactionManager, camera) {
   const radius = 1;
   const widthSegments = 50;
   const heightSegments = 50;
@@ -128,10 +155,17 @@ function createSun() {
   const sunMaterial = new THREE.MeshPhongMaterial({emissive: 0xFFFF00});
   const sunMesh = new THREE.Mesh(sphereGeometry, sunMaterial);
   sunMesh.scale.set(SunRadius, SunRadius, SunRadius);
+
+  sunMesh.addEventListener("click", (event) => {
+    event.stopPropagation();
+    zoomToObject(event.target, camera);
+  });
+  interactionManager.add(sunMesh);
+
   return sunMesh;
 }
 
-function createPlanet(name, orbitRadiusInMKm, planetRadiusInKm, lengthOfYearInEarthDays, lengthOfDayInEarthDays, colour, objectsToRotate) {
+function createPlanet(name, orbitRadiusInMKm, planetRadiusInKm, lengthOfYearInEarthDays, lengthOfDayInEarthDays, colour, objectsToRotate, interactionManager, camera) {
   const orbitRadius = ((orbitRadiusInMKm / 149) * 10) + SunRadius;
   const planetRadius = (planetRadiusInKm / 6371) * 0.5;
 
@@ -166,10 +200,16 @@ function createPlanet(name, orbitRadiusInMKm, planetRadiusInKm, lengthOfYearInEa
   planetGroup.add(planetMesh);
   objectsToRotate.push({ obj: planetMesh, periodInEarthDays: lengthOfDayInEarthDays });
 
+  planetMesh.addEventListener("click", (event) => {
+    event.stopPropagation();
+    zoomToObject(event.target, camera);
+  });
+  interactionManager.add(planetMesh);
+
   return planetOrbit;
 }
 
-function addMoon(planetOrbit, orbitRadius, moonRadiusInKm, lengthOfMonthInEarthDays, objectsToRotate) {
+function addMoon(planetOrbit, orbitRadius, moonRadiusInKm, lengthOfMonthInEarthDays, objectsToRotate, interactionManager, camera) {
     const planetGroup = planetOrbit.children.filter(c => c.name)[0];
 
     const radius = (moonRadiusInKm / 6371) * 0.5;
@@ -187,7 +227,20 @@ function addMoon(planetOrbit, orbitRadius, moonRadiusInKm, lengthOfMonthInEarthD
     moonOrbit.add(moonMesh);
     objectsToRotate.push({ obj: moonOrbit, periodInEarthDays: lengthOfMonthInEarthDays });
 
+    moonMesh.addEventListener("click", (event) => {
+      event.stopPropagation();
+      zoomToObject(event.target, camera);
+    });
+    interactionManager.add(moonMesh);
+
     return moonOrbit;
+}
+
+function zoomToObject(object, camera) {
+  const position = new THREE.Vector3();
+  object.getWorldPosition(position);
+  camera.position.set(position.x, position.y + 50, position.z);
+  camera.lookAt(position.x, position.y, position.z);
 }
 
 export { main };

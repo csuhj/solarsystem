@@ -9,10 +9,12 @@
   <body>
     <h1>The Solar System</h1>
     <canvas id="canvas"></canvas>
+    <button id="pausePlayButton">Pause</button>
+    <button id="changeViewButton">Change View</button>
     <script type="module">
         import { main } from './script.js'
 
-        main(document.querySelector('#canvas'));
+        main(document.querySelector('#canvas'), document.querySelector('#pausePlayButton'), document.querySelector('#changeViewButton'));
     </script>
   </body>
 </html>
