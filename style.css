@@ -9,6 +9,10 @@ html, body {
     display: block;
 }
 
+.control-button {
+    font-size: larger;
+}
+
 .popup-window{
     background:rgba(0,0,0,.4);
     cursor:pointer;
