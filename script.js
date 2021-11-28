@@ -57,16 +57,18 @@ function main(canvas, pausePlayButton, changeViewButton) {
 
   solarSystem.add(createSun(interactionManager, camera));
 
-  const mercury = createPlanet('mercury', 57.91, 2440, 88, 58.5, 0xcc5200, objectsToRotate, interactionManager, camera);
-  const venus = createPlanet('venus', 108.2, 6052, 225, 116.6, 0xffffb3,  objectsToRotate, interactionManager, camera);
-  const earth = createPlanet('earth',148, 6371, 365.25, 1, 0x66a3ff, objectsToRotate, interactionManager, camera);
-  addMoon(earth, 0.384, 1737, 27.3, objectsToRotate, interactionManager, camera);
+  const mercury = createPlanet('mercury', 57.91, 2440, 88, 58.5, 2, 0xcc5200, objectsToRotate, interactionManager, camera);
+  const venus = createPlanet('venus', 108.2, 6052, 225, 116.6, 3, 0xffffb3,  objectsToRotate, interactionManager, camera);
+  const earth = createPlanet('earth',148, 6371, 365.25, 1, 23.5, 0x66a3ff, objectsToRotate, interactionManager, camera);
+  addMoon(earth, 0.384, 1737, 27.3, 23.5, objectsToRotate, interactionManager, camera);
 
-  const mars = createPlanet('mars', 239.67, 3390, 687, 1, 0xff471a, objectsToRotate, interactionManager, camera);
-  const jupiter = createPlanet('jupiter', 778, 69911, 4333, 0.3, 0xff9966, objectsToRotate, interactionManager, camera);
-  const saturn = createPlanet('saturn', 1434, 58232, 10759, 0.4, 0xcca300, objectsToRotate, interactionManager, camera);
-  const uranus = createPlanet('uranus', 2871, 25362, 30688, 0.7, 0x99ccff, objectsToRotate, interactionManager, camera);
-  const neptune = createPlanet('neptune', 4495, 24262, 60195, 0.7, 0x0066cc, objectsToRotate, interactionManager, camera);
+  const mars = createPlanet('mars', 239.67, 3390, 687, 1, 25, 0xff471a, objectsToRotate, interactionManager, camera);
+  const jupiter = createPlanet('jupiter', 778, 69911, 4333, 0.3, 3, 0xff9966, objectsToRotate, interactionManager, camera);
+  const saturn = createPlanet('saturn', 1434, 58232, 10759, 0.4, 26.7, 0xcca300, objectsToRotate, interactionManager, camera);
+  addRings(saturn, 7000, 73000, 26.7, 0xcca300);
+
+  const uranus = createPlanet('uranus', 2871, 25362, 30688, 0.7, 97.7, 0x99ccff, objectsToRotate, interactionManager, camera);
+  const neptune = createPlanet('neptune', 4495, 24262, 60195, 0.7, 28.3, 0x0066cc, objectsToRotate, interactionManager, camera);
 
   solarSystem.add(mercury);
   solarSystem.add(venus);
@@ -178,7 +180,7 @@ function createSun(interactionManager, camera) {
   return sunMesh;
 }
 
-function createPlanet(name, orbitRadiusInMKm, planetRadiusInKm, lengthOfYearInEarthDays, lengthOfDayInEarthDays, colour, objectsToRotate, interactionManager, camera) {
+function createPlanet(name, orbitRadiusInMKm, planetRadiusInKm, lengthOfYearInEarthDays, lengthOfDayInEarthDays, angleOfTiltInDegrees, colour, objectsToRotate, interactionManager, camera) {
   const orbitRadius = ((orbitRadiusInMKm / 149) * 10) + SunRadius;
   const planetRadius = (planetRadiusInKm / 6371) * 0.5;
 
@@ -210,6 +212,8 @@ function createPlanet(name, orbitRadiusInMKm, planetRadiusInKm, lengthOfYearInEa
 
   const planetMaterial = new THREE.MeshPhongMaterial({color: colour, emissive: 0x444444});
   const planetMesh = new THREE.Mesh(sphereGeometry, planetMaterial);
+  planetMesh.rotation.x = degreesToRadians(-90 + angleOfTiltInDegrees);
+
   planetGroup.add(planetMesh);
   objectsToRotate.push({ obj: planetMesh, periodInEarthDays: lengthOfDayInEarthDays });
 
@@ -222,9 +226,11 @@ function createPlanet(name, orbitRadiusInMKm, planetRadiusInKm, lengthOfYearInEa
   return planetOrbit;
 }
 
-function addMoon(planetOrbit, orbitRadius, moonRadiusInKm, lengthOfMonthInEarthDays, objectsToRotate, interactionManager, camera) {
+function addMoon(planetOrbit, orbitRadiusInMKm, moonRadiusInKm, lengthOfMonthInEarthDays, angleOfTiltInDegrees, objectsToRotate, interactionManager, camera) {
     const planetGroup = planetOrbit.children.filter(c => c.name)[0];
-
+    const planetMesh = planetGroup.children[0];
+    const planetRadius = planetMesh.geometry.parameters.radius;
+  
     const radius = (moonRadiusInKm / 6371) * 0.5;
     const widthSegments = 10;
     const heightSegments = 10;
@@ -232,11 +238,14 @@ function addMoon(planetOrbit, orbitRadius, moonRadiusInKm, lengthOfMonthInEarthD
         radius, widthSegments, heightSegments);
 
     const moonOrbit = new THREE.Object3D();
+    moonOrbit.rotation.x = degreesToRadians(-90 + angleOfTiltInDegrees);
+
     planetGroup.add(moonOrbit);
   
     const moonMaterial = new THREE.MeshPhongMaterial({color: 0x888888, emissive: 0x222222});
     const moonMesh = new THREE.Mesh(sphereGeometry, moonMaterial);
-    moonMesh.position.x = 1; //orbitRadius; - needs to be orbitRadius plus planet's radius
+    moonMesh.position.x = planetRadius + 0.3;
+
     moonOrbit.add(moonMesh);
     objectsToRotate.push({ obj: moonOrbit, periodInEarthDays: lengthOfMonthInEarthDays });
 
@@ -249,9 +258,35 @@ function addMoon(planetOrbit, orbitRadius, moonRadiusInKm, lengthOfMonthInEarthD
     return moonOrbit;
 }
 
+function addRings(planetOrbit, distanceFromPlanetInKm, widthOfRingsInKm, angleOfTiltInDegrees, colour) {
+  const planetGroup = planetOrbit.children.filter(c => c.name)[0];
+  const planetMesh = planetGroup.children[0];
+  const planetRadius = planetMesh.geometry.parameters.radius;
+
+  const distanceFromPlanet = planetRadius + ((distanceFromPlanetInKm / 6371) * 0.5);
+  const width = (widthOfRingsInKm / 6371) * 0.5;
+  const segments = 50;
+  const ringGeometry = new THREE.RingGeometry(
+    distanceFromPlanet, distanceFromPlanet + width, segments);
+
+  const ringMaterial = new THREE.MeshPhongMaterial({color: colour, emissive: 0x444444, side: THREE.DoubleSide});
+  const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
+  ringMesh.rotation.x = degreesToRadians(-90 + angleOfTiltInDegrees);
+
+  planetGroup.add(ringMesh);
+
+  return ringMesh;
+}
+
 function setPopupMessage(name) {
   document.querySelector('.popup-window-message').innerHTML = document.querySelector(`#popup-message-${name}`).innerHTML;
   document.querySelector('.popup-window').style.display = 'block';
+}
+
+function degreesToRadians(degrees)
+{
+  var pi = Math.PI;
+  return degrees * (pi/180);
 }
 
 export { main };
