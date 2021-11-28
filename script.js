@@ -13,6 +13,11 @@ const CameraPositions = [
 let cameraPositionIndex = 0;
 
 function main(canvas, pausePlayButton, changeViewButton) {
+  const popupDialogs = [...document.querySelectorAll('.popup-window'), ...document.querySelectorAll('.popup-close-button')];
+  for (const popupDialog of popupDialogs) {
+    popupDialog.addEventListener('click', hidePopup, false);
+  }
+
   pausePlayButton.addEventListener('click', pausePlay, false);
   changeViewButton.addEventListener('click', changeView, false);
 
@@ -90,6 +95,14 @@ function main(canvas, pausePlayButton, changeViewButton) {
     setCameraPosition(camera);
   }
 
+  function hidePopup(event) {
+    const popupDialogs = [...document.querySelectorAll('.popup-window')];
+    for (const popupDialog of popupDialogs) {
+      popupDialog.style.display = 'none';
+    }
+    
+  }
+
   function resizeRendererToDisplaySize(renderer) {
     const canvas = renderer.domElement;
     const width = canvas.clientWidth;
@@ -158,7 +171,7 @@ function createSun(interactionManager, camera) {
 
   sunMesh.addEventListener("click", (event) => {
     event.stopPropagation();
-    zoomToObject(event.target, camera);
+    setPopupMessage('sun');
   });
   interactionManager.add(sunMesh);
 
@@ -202,7 +215,7 @@ function createPlanet(name, orbitRadiusInMKm, planetRadiusInKm, lengthOfYearInEa
 
   planetMesh.addEventListener("click", (event) => {
     event.stopPropagation();
-    zoomToObject(event.target, camera);
+    setPopupMessage(name);
   });
   interactionManager.add(planetMesh);
 
@@ -229,18 +242,16 @@ function addMoon(planetOrbit, orbitRadius, moonRadiusInKm, lengthOfMonthInEarthD
 
     moonMesh.addEventListener("click", (event) => {
       event.stopPropagation();
-      zoomToObject(event.target, camera);
+      setPopupMessage('moon');
     });
     interactionManager.add(moonMesh);
 
     return moonOrbit;
 }
 
-function zoomToObject(object, camera) {
-  const position = new THREE.Vector3();
-  object.getWorldPosition(position);
-  camera.position.set(position.x, position.y + 50, position.z);
-  camera.lookAt(position.x, position.y, position.z);
+function setPopupMessage(name) {
+  document.querySelector('.popup-window-message').innerHTML = document.querySelector(`#popup-message-${name}`).innerHTML;
+  document.querySelector('.popup-window').style.display = 'block';
 }
 
 export { main };
